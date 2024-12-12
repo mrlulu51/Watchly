@@ -11,13 +11,14 @@ import {
   generateTwoFactorToken,
 } from "@/lib/tokens";
 import { getUserByEmail } from "@/data/user";
-import { sendVerificationEmail, sendTwoFactorTokenEmail } from "@/lib/mail";
+import { Mailer } from "@/lib/mail";
 import { getTwoFactorTokenByEmail } from "@/data/TwoFactorToken";
 import { getTwoFactorConfirmationByUserId } from "@/data/TwoFactorConfirmation";
 import { prisma } from "@/lib/prisma";
 
 export const login = async (values: z.infer<typeof LoginSchema>) => {
   const validatedFields = LoginSchema.safeParse(values);
+  const mailer = new Mailer();
 
   if (!validatedFields.success) {
     return { error: "Invalid fields!" };
@@ -32,7 +33,7 @@ export const login = async (values: z.infer<typeof LoginSchema>) => {
 
   if (!existingUser.emailVerified) {
     const verificationToken = await generateVerificationToken(email);
-    await sendVerificationEmail(
+    await mailer.sendVerificationEmail(
       verificationToken.email,
       verificationToken.token
     );
@@ -76,7 +77,7 @@ export const login = async (values: z.infer<typeof LoginSchema>) => {
       })
     } else {
       const twoFactorToken = await generateTwoFactorToken(existingUser.email);
-      await sendTwoFactorTokenEmail(twoFactorToken.email, twoFactorToken.token);
+      await mailer.sendTwoFactorTokenEmail(twoFactorToken.email, twoFactorToken.token);
 
       return { twoFactor: true };
     }
